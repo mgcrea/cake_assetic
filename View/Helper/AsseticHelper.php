@@ -38,6 +38,9 @@ use Assetic\Asset\FileAsset;
 App::import('Vendor', 'Assetic/Asset/GlobAsset');
 use Assetic\Asset\GlobAsset;
 
+App::import('Vendor', 'Assetic/Factory/AssetFactory');
+use Assetic\Factory\AssetFactory;
+
 /**
  * A template helper that assists in generating CSS/JS static content
  */
@@ -90,9 +93,14 @@ class AsseticHelper extends AppHelper {
 		// Force helper static configuration
 		if(!static::$config) static::config();
 
+
+
 		$this->styleAssetCollection = new AssetCollection();
 		$this->styleAssetManager = new AssetManager();
 		// Initialize static assets writer
+		$this->styleAssetFactory = new AssetFactory(static::$config['stylesPath']);
+		$this->styleAssetFactory->setAssetManager($this->styleAssetManager);
+		$this->styleAssetFactory->setFilterManager(static::$filterManager);
 		$this->styleAssetWriter = new AssetWriter(static::$config['stylesPath']);
 
 		$this->scriptAssetCollection = new AssetCollection();
@@ -110,6 +118,7 @@ class AsseticHelper extends AppHelper {
 		$defaults = array(
 			'type' => "style",
 			'target' => false,
+			'factory' => false,
 			'filters' => array()
 		);
 		$options += $defaults;
@@ -123,6 +132,20 @@ class AsseticHelper extends AppHelper {
 
 		// Resolve filters
 		$filters = $this->resolveFilters($options['filters']);
+
+		if($options['factory']) {
+
+			foreach($source as &$leaf) {
+				$leaf = $leaf .= '.less';//self::normalizeExtension($leaf, $options['type']);
+			} unset($leaf);
+			$asset = $this->styleAssetFactory->createAsset($source, $options['filters']);
+			//$ac->add($asset);
+			$asset->setTargetPath($options['target'] ?: self::normalizeExtension('combined', $options['type']));
+			$aw->writeAsset($asset);
+			echo $this->Html->css('combined') . "\n\t";
+
+			return null;
+		}
 
 		foreach($source as $leaf) {
 			$leaf = self::guessExtension($leaf, $options);
@@ -156,6 +179,7 @@ class AsseticHelper extends AppHelper {
 			'target' => "main",
 			'type' => "style",
 			'force' => false,
+			'version' => false,
 			'filters' => array()
 		);
 		$options += $defaults;
@@ -183,7 +207,7 @@ class AsseticHelper extends AppHelper {
 			$aw->writeManagerAssets($am);
 		}
 
-		return $this->Html->css($options['target'], null, array('inline' => true));
+		return $this->Html->css($options['target'] . ($options['version'] ? '?' . $options['version'] : ''), null, array('inline' => true));
 
 	}
 
@@ -236,6 +260,7 @@ class AsseticHelper extends AppHelper {
 			'target' => "main",
 			'type' => "script",
 			'force' => false,
+			'version' => false,
 			'filters' => array()
 		);
 		$options += $defaults;
@@ -253,6 +278,7 @@ class AsseticHelper extends AppHelper {
 			$ac->ensureFilter($filter);
 		}
 
+
 		$options['target'] = self::normalizeExtension($options['target'], $options['type']);
 		$ac->setTargetPath($options['target']);
 		$am->set(str_replace('.', '', $options['target']), $ac);
@@ -263,7 +289,7 @@ class AsseticHelper extends AppHelper {
 			$aw->writeManagerAssets($am);
 		}
 
-		return $this->Html->script($options['target'], array('inline' => true));
+		return $this->Html->script($options['target'] . ($options['version'] ? '?' . $options['version'] : ''), array('inline' => true));
 
 	}
 
