@@ -24,6 +24,7 @@ App::import('Vendor', 'Assetic/FilterManager');
 use Assetic\FilterManager;
 App::import('Vendor', 'Assetic/Asset/AssetInterface');
 App::import('Vendor', 'Assetic/Asset/AssetCollectionInterface');
+App::import('Vendor', 'Assetic/Filter/FilterInterface');
 App::import('Vendor', 'Assetic/Filter/FilterCollection');
 App::import('Vendor', 'Assetic/Exception/Exception');
 App::import('Vendor', 'Assetic/Exception/FilterException');
